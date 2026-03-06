@@ -98,17 +98,39 @@ exports.handler = async (event) => {
 
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
 
-  const { q, engine = 'google', page = '1' } = event.queryStringParameters || {};
+  const { q, engine = 'google', page = '1', type = 'web' } = event.queryStringParameters || {};
   if (!q) return { statusCode: 400, headers, body: JSON.stringify({ error: 'missing q' }) };
 
   const p = parseInt(page) || 1;
-  let source = 'serper';
 
+  // ── IMAGE SEARCH ──
+  if (type === 'images') {
+    try {
+      const { status, body } = await req('POST', 'https://google.serper.dev/images',
+        { 'X-API-KEY': SERPER_KEY, 'Content-Type': 'application/json' },
+        { q, num: 24 }
+      );
+      if (status !== 200) throw new Error(`serper images ${status}`);
+      const json = JSON.parse(body);
+      const images = (json.images || []).map(i => ({
+        title:        i.title        || '',
+        imageUrl:     i.imageUrl     || '',
+        thumbnailUrl: i.thumbnailUrl || '',
+        link:         i.link         || '',
+        source:       i.source       || '',
+      }));
+      return { statusCode: 200, headers, body: JSON.stringify({ images, query: q }) };
+    } catch(e) {
+      return { statusCode: 502, headers, body: JSON.stringify({ error: e.message }) };
+    }
+  }
+
+  // ── WEB SEARCH ──
+  let source = 'serper';
   try {
     const results = await serperSearch(q, engine, p);
     return { statusCode: 200, headers, body: JSON.stringify({ results, page: p, engine, query: q, source }) };
   } catch (serperErr) {
-    // Serper failed or quota exceeded — fall back to Claude
     source = 'claude';
     try {
       const results = await claudeSearch(q, engine, p);
