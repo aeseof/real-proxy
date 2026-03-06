@@ -1,7 +1,7 @@
 const https = require('https');
 
 const SERPER_KEY    = process.env.SERPER_API_KEY    || '2aea0c082b9cee3d3f6397e6ad4f9a3c205ec1b7';
-const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || '';
+const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || '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';
 
 // ── HTTP helper ──
 function req(method, url, headers, body) {
